@@ -143,7 +143,57 @@ tr.dup td { background: var(--dup); }
 .warn { color: var(--warn); font-weight: 600; }
 .ctrl { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .foot { color: var(--muted); font-size: 12px; }
-@media (max-width: 980px) { .main { grid-template-columns: 1fr; } .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .pop { grid-template-columns: 1fr; } }
+/* ---------- tablet ---------- */
+@media (max-width: 1100px) {
+  .kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .kpi.destaque { grid-column: span 4; }
+}
+@media (max-width: 980px) {
+  .main { grid-template-columns: 1fr; }
+  .comps #comps { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .pop { grid-template-columns: 1fr; }
+}
+table.t td.l:first-child, table.t th.l:first-child { position: sticky; left: 0; z-index: 1; background: var(--surface); }
+table.t thead th.l:first-child { z-index: 3; }
+/* ---------- celular ---------- */
+@media (max-width: 700px) {
+  body { font-size: 13.5px; }
+  .wrap { padding: 0 12px 28px; gap: 14px; }
+  .topo-in { padding: 6px 12px; gap: 6px 12px; }
+  .logo { height: 42px; }
+  h1 { font-size: 17px; }
+  .fonte { font-size: 10.5px; gap: 8px; width: 100%; justify-content: space-between; flex-wrap: nowrap; }
+  .fonte #fonte { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .topo .btn { min-height: 0; padding: 4px 9px; white-space: nowrap; }
+  .bar-filtros { flex-wrap: nowrap; overflow-x: auto; gap: 14px; padding: 8px 0; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .bar-filtros::-webkit-scrollbar { display: none; }
+  .group { flex-wrap: nowrap; flex: none; }
+  .chip { white-space: nowrap; }
+  details.status { position: static; }
+  .pop { position: fixed; left: 0; right: 0; bottom: 0; top: auto; width: 100%; max-height: 72vh; border-radius: 16px 16px 0 0; padding: 16px; box-shadow: 0 -10px 30px rgba(0,0,0,.25); }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .kpi.destaque { grid-column: span 2; }
+  .kpi { padding: 10px 12px; }
+  .kpi .val { font-size: 24px; }
+  .sec, .comps { padding: 12px; }
+  .comps #comps { grid-template-columns: 1fr; }
+  .mapcard { padding: 4px; }
+  .legend { position: static; margin: 6px 4px 4px; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 10px; font-size: 11px; }
+  .legend b { grid-column: 1 / -1; }
+  .tip { min-width: 180px; max-width: calc(100% - 16px); font-size: 12px; }
+  .ctrl input[type="search"] { min-width: 0 !important; width: 100%; }
+  .ctrl select { flex: 1; }
+  /* lista vira cartões */
+  .lista { max-height: none; border: 0; }
+  #t-lista thead { display: none; }
+  #t-lista, #t-lista tbody { display: block; }
+  #t-lista tr { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; margin-bottom: 8px; background: var(--surface); }
+  #t-lista tr.dup { background: var(--dup); }
+  #t-lista td { display: block; border: 0; padding: 0; position: static; background: none !important; white-space: normal; }
+  #t-lista td:first-child { grid-column: 1 / -1; font-size: 14px; margin-bottom: 4px; }
+  #t-lista td[data-l]::before { content: attr(data-l); display: block; font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+}
+@media (pointer: coarse) { .chip, select, .btn { min-height: 36px; } }
 @media (prefers-reduced-motion: reduce) { .area { transition: none; } }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -390,7 +440,10 @@ function mapa(lista, g) {
     p.style.opacity = st.reg && st.reg !== a.id ? 0.4 : 1;
     p.addEventListener('mousemove', (ev) => dica(ev, a, r));
     p.addEventListener('mouseleave', () => ($('tip').style.display = 'none'));
-    p.addEventListener('click', () => { st.reg = st.reg === a.id ? null : a.id; tudo(false); });
+    p.addEventListener('click', (ev) => {
+      st.reg = st.reg === a.id ? null : a.id; tudo(false);
+      if (matchMedia('(pointer: coarse)').matches) { if (st.reg) dica(ev, a, r); else $('tip').style.display = 'none'; }
+    });
     gA.appendChild(p);
     const t = document.createElementNS(ns, 'text');
     t.setAttribute('x', a.lx); t.setAttribute('y', a.ly); t.setAttribute('class', 'lbl');
@@ -485,7 +538,7 @@ function tabLista(lista) {
   $('lista-n').textContent = `${fmt(l.length)} obra(s)` + (st.reg ? ` · região ${st.reg}` : '');
   const falta = (v, cond) => (cond ? `<span class="warn">${esc(v || '— falta —')}</span>` : esc(v));
   $('t-lista').innerHTML = `<thead><tr>${cols.map(([c, n]) => `<th class="l sort" data-k="${c}">${n}${k === c ? (dir > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('')}</tr></thead><tbody>` +
-    (l.length ? l.map((o) => `<tr class="${o.dup ? 'dup' : ''}"><td class="l"><b>${esc(o.o)}</b></td><td class="l">${falta(o.m, !o.m)}</td><td class="l">${esc(o.uf)}</td><td class="l">${esc(o.ct)}</td><td class="l">${falta(o.f, !o.f || o.s === 'Fase não mapeada')}</td><td class="l">${esc(o.e)}</td><td class="l">${falta(o.c, o.c === 'Aguardando informação' || o.c === 'Sem comprador')}</td><td class="l">${falta(o.r, o.r === 'Sem região')}</td></tr>`).join('')
+    (l.length ? l.map((o) => `<tr class="${o.dup ? 'dup' : ''}"><td class="l"><b>${esc(o.o)}</b></td><td class="l" data-l="Município">${falta(o.m, !o.m)}</td><td class="l" data-l="UF">${esc(o.uf)}</td><td class="l" data-l="Contrato">${esc(o.ct)}</td><td class="l" data-l="Fase no SIGO">${falta(o.f, !o.f || o.s === 'Fase não mapeada')}</td><td class="l" data-l="Etapa">${esc(o.e)}</td><td class="l" data-l="Comprador">${falta(o.c, o.c === 'Aguardando informação' || o.c === 'Sem comprador')}</td><td class="l" data-l="Região">${falta(o.r, o.r === 'Sem região')}</td></tr>`).join('')
       : `<tr><td class="l" colspan="8">Nenhuma obra com esses filtros.</td></tr>`) + '</tbody>';
   $('t-lista').querySelectorAll('th.sort').forEach((th) => th.addEventListener('click', () => {
     const c = th.dataset.k; st.sortLista = [c, st.sortLista[0] === c ? -st.sortLista[1] : 1]; tabLista(lista);
@@ -534,7 +587,7 @@ $('sel-uf').addEventListener('change', (e) => { st.uf = e.target.value; st.reg =
 $('regchip').addEventListener('click', () => { st.reg = null; tudo(false); });
 $('busca').addEventListener('input', (e) => { st.busca = e.target.value; tabLista(OBRAS.filter((o) => passa(o, false))); });
 $('sel-pend').addEventListener('change', (e) => { st.pend = e.target.value; tabLista(OBRAS.filter((o) => passa(o, false))); });
-document.addEventListener('click', (e) => { const d = $('det-status'); if (d.open && !d.contains(e.target)) d.open = false; });
+document.addEventListener('click', (e) => { const d = $('det-status'); if (d.open && !d.contains(e.target)) d.open = false; if (!$('map').contains(e.target)) $('tip').style.display = 'none'; });
 $('voltar').addEventListener('click', () => carregar(PUB, null));
 $('arquivo').addEventListener('change', async (e) => {
   const f = e.target.files[0]; if (!f) return;
