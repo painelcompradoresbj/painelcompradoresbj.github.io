@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Painel de Obras por Comprador</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* layout: cabeçalho + barra de filtros fixa; resumo; mapa com compradores ao lado; tabelas; lista de obras */
+  --bg: #f3f5f3;
+  --surface: #ffffff;
+  --ink: #1b2620;
+  --muted: #5f6d65;
+  --line: #dde3df;
+  --brand: #1f4e3d;
+  --land: #e4e9e6;
+  --warn: #b4321f; --warn-soft: #fbe3de;
+  --dup: #fde9d4;
+  --elias: #2f74c0;  --elias-soft: #d3e3f4;
+  --maik: #2f9e4f;   --maik-soft: #d4eedb;
+  --marcelo: #d9971a; --marcelo-soft: #f8e6bd;
+  --div: #8a63c9;    --div-soft: #e5dcf4;
+  --outros: #9aa5a0;
+  --font-display: "Archivo", "Segoe UI", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #101713; --surface: #18221d; --ink: #e6ede9; --muted: #9aaba2; --line: #2b3933; --brand: #82c8a7; --land: #25312b;
+    --warn: #f08a76; --warn-soft: #43231d; --dup: #45321d;
+    --elias-soft: #1f3a5a; --maik-soft: #1d4329; --marcelo-soft: #4a3a14; --div-soft: #3a2d55; --outros: #6f7c76;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #101713; --surface: #18221d; --ink: #e6ede9; --muted: #9aaba2; --line: #2b3933; --brand: #82c8a7; --land: #25312b;
+  --warn: #f08a76; --warn-soft: #43231d; --dup: #45321d;
+  --elias-soft: #1f3a5a; --maik-soft: #1d4329; --marcelo-soft: #4a3a14; --div-soft: #3a2d55; --outros: #6f7c76;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 14px; line-height: 1.4; }
+.wrap { max-width: 1320px; margin: 0 auto; padding: 0 20px 40px; display: grid; gap: 18px; }
+header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 10px 24px; padding-top: 20px; border-bottom: 3px solid var(--brand); padding-bottom: 12px; }
+h1 { font-family: var(--font-display); font-weight: 800; font-size: 26px; margin: 0; color: var(--brand); text-wrap: balance; letter-spacing: -0.01em; }
+h2 { font-family: var(--font-display); font-size: 17px; margin: 0; text-wrap: balance; }
+.fonte { color: var(--muted); font-size: 13px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.btn { font: inherit; font-weight: 600; font-size: 13px; border: 1px solid var(--brand); color: var(--brand); background: var(--surface); padding: 6px 12px; border-radius: 8px; cursor: pointer; }
+.btn:hover { background: var(--bg); }
+.banner { background: var(--marcelo-soft); border: 1px solid var(--marcelo); border-radius: 8px; padding: 8px 12px; display: none; gap: 12px; align-items: center; flex-wrap: wrap; }
+.bar-filtros { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--bg) 94%, transparent); backdrop-filter: blur(6px); padding: 10px 0; border-bottom: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; }
+.group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.group > .gl { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 600; margin-right: 2px; }
+.chip { font: inherit; font-weight: 500; font-size: 13px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); padding: 5px 11px; border-radius: 999px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.chip:hover { border-color: var(--muted); }
+.chip[aria-pressed="true"] { background: var(--brand); border-color: var(--brand); color: var(--surface); }
+select, input[type="search"] { font: inherit; font-size: 13px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); }
+:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex: none; }
+details.status { position: relative; }
+details.status summary { list-style: none; cursor: pointer; }
+details.status summary::-webkit-details-marker { display: none; }
+.pop { position: absolute; top: calc(100% + 6px); left: 0; z-index: 30; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.18); padding: 12px; width: min(560px, 92vw); display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px 18px; max-height: 70vh; overflow: auto; }
+.pop .et { display: grid; gap: 3px; align-content: start; }
+.pop .et > button { font: inherit; font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--brand); background: none; border: 0; padding: 0; text-align: left; cursor: pointer; }
+.pop label { display: flex; gap: 6px; align-items: center; font-size: 13px; cursor: pointer; }
+.pop label span.n { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums; }
+.regchip { display: none; }
+.kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; gap: 2px; text-align: left; font: inherit; color: inherit; }
+.kpi.destaque { border-top: 4px solid var(--brand); }
+.kpi.alerta { border-top: 4px solid var(--warn); cursor: pointer; }
+.kpi.alerta:hover { background: var(--warn-soft); }
+.kpi .lab { font-size: 12px; color: var(--muted); font-weight: 600; }
+.kpi .val { font-family: var(--font-display); font-size: 28px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.kpi .sub { font-size: 12px; color: var(--muted); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.sec { padding: 16px; display: grid; gap: 12px; }
+.sec-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.hint { color: var(--muted); font-size: 12px; margin: 0; }
+.main { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(320px, 1fr); gap: 16px; align-items: start; }
+.mapcard { position: relative; padding: 8px; }
+svg#map { width: 100%; height: auto; display: block; }
+.area { stroke: var(--surface); stroke-width: 1.2; cursor: pointer; transition: fill .2s, opacity .2s; }
+.area:hover, .area.sel { stroke: var(--ink); stroke-width: 2.2; }
+.lbl { font-family: var(--font-display); font-weight: 700; font-size: 11px; fill: var(--ink); text-anchor: middle; pointer-events: none; paint-order: stroke; stroke: var(--surface); stroke-width: 3px; stroke-linejoin: round; }
+.lbl .n { font-weight: 800; font-size: 13px; }
+.bub { stroke: var(--surface); stroke-width: 1; pointer-events: none; filter: brightness(.82); }
+.legend { position: absolute; left: 14px; bottom: 12px; background: color-mix(in srgb, var(--surface) 90%, transparent); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; display: grid; gap: 4px; font-size: 12px; }
+.legend b { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.legend div { display: flex; align-items: center; gap: 8px; }
+.sw { width: 16px; height: 11px; border-radius: 3px; flex: none; }
+.tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 6px 20px rgba(0,0,0,.15); border-radius: 8px; padding: 10px 12px; font-size: 12.5px; min-width: 210px; display: none; z-index: 5; }
+.tip h3 { margin: 0 0 6px; font-family: var(--font-display); font-size: 14px; }
+.tip table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+.tip td { padding: 2px 0; } .tip td:last-child { text-align: right; font-weight: 600; }
+.comps { padding: 16px; display: grid; gap: 12px; }
+.comp { border: 1px solid var(--line); border-left: 5px solid var(--c); border-radius: 10px; padding: 10px 12px; display: grid; gap: 6px; cursor: pointer; background: var(--surface); font: inherit; color: inherit; text-align: left; }
+.comp:hover { background: var(--bg); }
+.comp[aria-pressed="true"] { background: color-mix(in srgb, var(--c) 12%, var(--surface)); }
+.comp .top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.comp .nm { font-family: var(--font-display); font-weight: 800; font-size: 16px; }
+.comp .big { font-family: var(--font-display); font-weight: 800; font-size: 24px; font-variant-numeric: tabular-nums; }
+.comp .meta { font-size: 12px; color: var(--muted); }
+.stack { display: flex; height: 10px; border-radius: 5px; overflow: hidden; background: var(--land); }
+.stack i { display: block; height: 100%; }
+.etleg { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 11.5px; color: var(--muted); }
+.etleg span { display: inline-flex; gap: 5px; align-items: center; }
+.outros { font-size: 12.5px; color: var(--muted); display: grid; gap: 3px; }
+.outros div { display: flex; justify-content: space-between; }
+.tw { overflow-x: auto; }
+table.t { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; font-size: 13px; }
+table.t th { font-weight: 600; font-size: 12px; color: var(--muted); text-align: right; padding: 7px 8px; border-bottom: 2px solid var(--line); white-space: nowrap; position: sticky; top: 0; background: var(--surface); }
+table.t th.l, table.t td.l { text-align: left; }
+table.t th.sort { cursor: pointer; } table.t th.sort:hover { color: var(--ink); }
+table.t td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+table.t tr.tot td { font-weight: 700; border-top: 2px solid var(--brand); border-bottom: 0; background: var(--bg); }
+table.t tr.click { cursor: pointer; } table.t tr.click:hover td { background: var(--bg); }
+table.t tr.sel td { background: color-mix(in srgb, var(--brand) 10%, var(--surface)); }
+td.zero { color: var(--line); }
+.pill { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap; color: var(--ink); }
+.mini { display: inline-flex; width: 90px; height: 8px; border-radius: 4px; overflow: hidden; background: var(--land); vertical-align: middle; }
+.mini i { display: block; height: 100%; }
+.lista { max-height: 560px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; }
+.lista td.l { white-space: normal; min-width: 90px; }
+tr.dup td { background: var(--dup); }
+.warn { color: var(--warn); font-weight: 600; }
+.ctrl { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.foot { color: var(--muted); font-size: 12px; }
+@media (max-width: 980px) { .main { grid-template-columns: 1fr; } .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .pop { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { .area { transition: none; } }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Divisão de obras por comprador</h1>
+    <div class="fonte">
+      <span id="fonte">Carregando dados…</span>
+      <label class="btn" for="arquivo">Atualizar com planilha (.xlsx)</label>
+      <input type="file" id="arquivo" accept=".xlsx,.xlsm,.xls" hidden>
+    </div>
+  </header>
+  <div class="banner" id="banner"><span id="banner-txt"></span><button class="btn" id="voltar">Voltar aos dados publicados</button></div>
+
+  <div class="bar-filtros" id="filtros">
+    <div class="group" role="group" aria-label="Comprador">
+      <span class="gl">Comprador</span>
+      <button class="chip" id="c-todos" data-c="Todos" aria-pressed="true">Todos</button>
+      <button class="chip" id="c-elias" data-c="Elias" aria-pressed="false"><i class="dot" style="background:var(--elias)"></i>Elias</button>
+      <button class="chip" id="c-maik" data-c="Maik" aria-pressed="false"><i class="dot" style="background:var(--maik)"></i>Maik</button>
+      <button class="chip" id="c-marcelo" data-c="Marcelo" aria-pressed="false"><i class="dot" style="background:var(--marcelo)"></i>Marcelo</button>
+      <button class="chip" id="c-outros" data-c="Outros" aria-pressed="false"><i class="dot" style="background:var(--outros)"></i>Outros</button>
+    </div>
+    <div class="group" role="group" aria-label="Situação">
+      <span class="gl">Situação</span>
+      <button class="chip" id="p-andamento" data-p="andamento" aria-pressed="true">Em andamento</button>
+      <button class="chip" id="p-todas" data-p="todas" aria-pressed="false">Todas</button>
+      <button class="chip" id="p-enc" data-p="enc" aria-pressed="false">Encerradas / canceladas</button>
+      <details class="status" id="det-status">
+        <summary class="chip" id="sum-status">Status ▾</summary>
+        <div class="pop" id="pop-status"></div>
+      </details>
+    </div>
+    <div class="group">
+      <label class="gl" for="sel-uf">UF</label>
+      <select id="sel-uf"></select>
+    </div>
+    <button class="chip regchip" id="regchip" aria-label="Tirar filtro de região"></button>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="main">
+    <div class="card mapcard" id="mapcard">
+      <svg id="map" viewBox="0 0 790 810" role="img" aria-label="Mapa do Brasil com as regiões coloridas pelo comprador principal"></svg>
+      <div class="legend">
+        <b>Comprador principal</b>
+        <div><i class="sw" style="background:color-mix(in srgb, var(--elias) 58%, var(--surface))"></i>Elias</div>
+        <div><i class="sw" style="background:color-mix(in srgb, var(--maik) 58%, var(--surface))"></i>Maik</div>
+        <div><i class="sw" style="background:color-mix(in srgb, var(--marcelo) 58%, var(--surface))"></i>Marcelo</div>
+        <div><i class="sw" style="background:color-mix(in srgb, var(--div) 58%, var(--surface))"></i>Dividido (ninguém com 60%+)</div>
+        <div><i class="sw" style="background:var(--land)"></i>Sem obra no filtro</div>
+        <div><i class="dot" style="background:var(--muted)"></i>Município (tamanho = nº de obras)</div>
+      </div>
+      <div class="tip" id="tip"></div>
+    </div>
+    <div class="card comps">
+      <div class="sec-head"><h2>Compradores</h2><span class="hint">clique para filtrar</span></div>
+      <div id="comps" style="display:grid;gap:10px"></div>
+      <div class="etleg" id="etleg"></div>
+      <div class="outros" id="outros"></div>
+    </div>
+  </div>
+
+  <section class="card sec">
+    <div class="sec-head"><h2>Obras por comprador e etapa</h2><span class="hint">mesma tabela 1 do Painel do Excel · cor mais forte = mais obras</span></div>
+    <div class="tw"><table class="t" id="t-comp"></table></div>
+  </section>
+
+  <section class="card sec">
+    <div class="sec-head"><h2>Obras por região e comprador</h2><span class="hint">clique no cabeçalho para ordenar · clique na linha para filtrar pela região</span></div>
+    <div class="tw"><table class="t" id="t-reg"></table></div>
+  </section>
+
+  <section class="card sec" id="sec-lista">
+    <div class="sec-head"><h2>Lista de obras</h2><span class="hint" id="lista-n"></span></div>
+    <div class="ctrl">
+      <input type="search" id="busca" placeholder="Buscar obra, município, contrato…" aria-label="Buscar na lista" style="min-width:260px">
+      <label class="gl" for="sel-pend" style="font-size:12px;color:var(--muted)">Verificar</label>
+      <select id="sel-pend">
+        <option value="">Todas as obras do filtro</option>
+        <option value="semcomp">Sem comprador definido</option>
+        <option value="semreg">Sem região (sem município)</option>
+        <option value="semfase">Sem fase</option>
+        <option value="dup">Duplicadas</option>
+        <option value="naomap">Fase não cadastrada</option>
+      </select>
+      <span class="foot">Laranja = obra duplicada · vermelho = falta informação</span>
+    </div>
+    <div class="lista"><table class="t" id="t-lista"></table></div>
+  </section>
+  <p class="foot" id="rodape"></p>
+</div>
+
+<script>
+const MAIN = ['Elias', 'Maik', 'Marcelo'];
+const COR = { Elias: 'var(--elias)', Maik: 'var(--maik)', Marcelo: 'var(--marcelo)', Dividido: 'var(--div)', Outros: 'var(--outros)' };
+const SOFT = { Elias: 'var(--elias-soft)', Maik: 'var(--maik-soft)', Marcelo: 'var(--marcelo-soft)', Dividido: 'var(--div-soft)' };
+const ETAPAS = ['Vistoria', 'Documentação', 'Orçamento', 'Execução', 'Encerrada', 'Cancelada', 'Sem fase'];
+const ETCOR = { 'Vistoria': '#7fb2d9', 'Documentação': '#a9c4a0', 'Orçamento': '#e5c15a', 'Execução': '#2f9e6f', 'Encerrada': '#7b8a83', 'Cancelada': '#c7705f', 'Sem fase': '#c9cfcc' };
+const POLOS = { SP: [['Sorocaba', 'Sorocaba'], ['Piracicaba', 'Piracicaba'], ['Ribeirão Preto', 'Ribeirão Preto'], ['Rio Preto', 'São José do Rio Preto']],
+                MG: [['Rio Doce/Vale do Aço', 'Governador Valadares'], ['Triângulo Mineiro', 'Uberlândia']] };
+const st = { c: 'Todos', uf: 'Todos', status: new Set(), reg: null, busca: '', pend: '', sortReg: ['total', -1], sortLista: ['o', 1] };
+let AREAS = [], GEO = null, PUB = null, OBRAS = [], CAD = null;
+const $ = (id) => document.getElementById(id);
+const fmt = (n) => Number(n).toLocaleString('pt-BR');
+const esc = (s) => String(s).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+const trim = (s) => String(s ?? '').trim();
+const low = (s) => trim(s).toLowerCase();
+const norm = (s) => low(s).normalize('NFKD').replace(/[̀-ͯ]/g, '');
+const proper = (s) => low(s).replace(/(^|\s)\S/g, (m) => m.toUpperCase());
+
+/* ---------- regras iguais às da aba Base do Excel ---------- */
+function processar(linhas, cad) {
+  const fasesM = new Map(cad.fases.map(([f, s]) => [low(f), trim(s)]));
+  const statusM = new Map(cad.status.map(([s, e, a]) => [low(s), { e: trim(e) || 'Sem fase', a: low(a) === 'sim' }]));
+  const compM = new Map(cad.compradores.map(([k, v]) => [low(k), trim(v)]));
+  const munM = new Map(cad.municipios.map(([m, u, r]) => [low(m), trim(r)]));
+  const regras = (cad.regras || []).filter((x) => trim(x[0])).sort((a, b) => trim(b[0]).length - trim(a[0]).length);
+  const regra = (o) => regras.find(([p]) => low(o).startsWith(low(p)));
+  const obras = linhas.map(([o, m, uf, ct, f, c]) => {
+    o = trim(o) || '(sem nome)'; m = trim(m); uf = trim(uf).toUpperCase(); f = trim(f); c = trim(c);
+    const s = f === '' ? 'Sem fase' : (fasesM.get(low(f)) || 'Fase não mapeada');
+    const sx = statusM.get(low(s)) || { e: 'Sem fase', a: false };
+    let comp = c === '' ? 'Sem comprador' : (compM.get(low(c)) || proper(c));
+    const rg = regra(o);
+    if (rg && trim(rg[2]) && (c === '' || norm(c) === 'aguardando informacao')) comp = trim(rg[2]);
+    const xy = m ? GEO.coords[norm(m) + '|' + uf] : null;
+    let r = 'Sem região';
+    if (m) r = munM.get(low(m)) || regiaoAuto(uf, xy);
+    else if (rg && trim(rg[1])) r = trim(rg[1]);
+    return { o, m, uf, ct: trim(ct), f, s, e: sx.e, a: sx.a, c: comp, r, xy };
+  });
+  const cont = new Map();
+  obras.forEach((x) => cont.set(low(x.o), (cont.get(low(x.o)) || 0) + 1));
+  obras.forEach((x) => (x.dup = cont.get(low(x.o)) > 1));
+  return obras;
+}
+function regiaoAuto(uf, xy) {
+  const nome = GEO.estados[uf] || uf;
+  if (!POLOS[uf] || !xy) return uf ? `${uf} - ${nome}` : 'Sem região';
+  let best = null, dmin = Infinity;
+  for (const [rot, cid] of POLOS[uf]) {
+    const p = GEO.coords[norm(cid) + '|' + uf]; if (!p) continue;
+    const d = Math.hypot(p[0] - xy[0], p[1] - xy[1]); if (d < dmin) { dmin = d; best = rot; }
+  }
+  return best ? `${uf} - ${best}` : `${uf} - ${nome}`;
+}
+
+/* ---------- filtros ---------- */
+const grupoComp = (c) => (MAIN.includes(c) ? c : 'Outros');
+function passa(o, semRegiao) {
+  if (!st.status.has(o.s)) return false;
+  if (st.c !== 'Todos' && grupoComp(o.c) !== st.c) return false;
+  if (st.uf !== 'Todos' && o.uf !== st.uf) return false;
+  if (!semRegiao && st.reg && o.r !== st.reg) return false;
+  return true;
+}
+function preset(p) {
+  st.status = new Set(CAD.status.map(([s, e, a]) => [trim(s), trim(e), low(a) === 'sim']).filter(([s, e, a]) =>
+    p === 'todas' ? true : p === 'andamento' ? a : (e === 'Encerrada' || e === 'Cancelada')).map(([s]) => s));
+  document.querySelectorAll('[data-p]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.p === p)));
+}
+function montarStatus() {
+  const porEtapa = {};
+  CAD.status.forEach(([s, e]) => (porEtapa[trim(e) || 'Sem fase'] ||= []).push(trim(s)));
+  const n = {}; OBRAS.forEach((o) => (n[o.s] = (n[o.s] || 0) + 1));
+  $('pop-status').innerHTML = Object.entries(porEtapa).map(([e, ss]) => `<div class="et"><button type="button" data-et="${esc(e)}">${esc(e)}</button>` +
+    ss.map((s, i) => `<label for="st-${esc(e)}-${i}"><input type="checkbox" id="st-${esc(e)}-${i}" data-s="${esc(s)}" ${st.status.has(s) ? 'checked' : ''}>${esc(s)}<span class="n">${n[s] || 0}</span></label>`).join('') + '</div>').join('');
+  $('pop-status').querySelectorAll('input').forEach((cb) => cb.addEventListener('change', () => {
+    cb.checked ? st.status.add(cb.dataset.s) : st.status.delete(cb.dataset.s);
+    document.querySelectorAll('[data-p]').forEach((b) => b.setAttribute('aria-pressed', 'false'));
+    tudo(false);
+  }));
+  $('pop-status').querySelectorAll('[data-et]').forEach((b) => b.addEventListener('click', () => {
+    const ss = porEtapa[b.dataset.et]; const todos = ss.every((s) => st.status.has(s));
+    ss.forEach((s) => (todos ? st.status.delete(s) : st.status.add(s)));
+    document.querySelectorAll('[data-p]').forEach((x) => x.setAttribute('aria-pressed', 'false'));
+    tudo(true);
+  }));
+}
+function resumo(lista) {
+  const g = {};
+  for (const o of lista) {
+    const r = g[o.r] || (g[o.r] = { total: 0, ativas: 0, Elias: 0, Maik: 0, Marcelo: 0, outros: 0 });
+    r.total++; if (o.a) r.ativas++;
+    if (MAIN.includes(o.c)) r[o.c]++; else r.outros++;
+  }
+  for (const r of Object.values(g)) {
+    const soma = r.Elias + r.Maik + r.Marcelo;
+    if (!soma) { r.principal = null; continue; }
+    const top = MAIN.reduce((a, b) => (r[b] > r[a] ? b : a));
+    r.principal = r[top] / soma >= 0.6 ? top : 'Dividido';
+  }
+  return g;
+}
+
+/* ---------- desenho ---------- */
+function tudo(refazerStatus) {
+  if (refazerStatus) montarStatus();
+  const nSt = st.status.size, tot = CAD.status.length;
+  $('sum-status').textContent = `Status (${nSt} de ${tot}) ▾`;
+  $('regchip').style.display = st.reg ? 'inline-flex' : 'none';
+  $('regchip').textContent = st.reg ? `Região: ${st.reg} ✕` : '';
+  const semReg = OBRAS.filter((o) => passa(o, true));
+  const lista = st.reg ? semReg.filter((o) => o.r === st.reg) : semReg;
+  const g = resumo(semReg);
+  kpis(lista); mapa(semReg, g); compradores(lista, g); tabComp(lista); tabReg(g); tabLista(lista);
+}
+function kpis(l) {
+  const semc = l.filter((o) => o.c === 'Aguardando informação' || o.c === 'Sem comprador').length;
+  const t = (cls, lab, val, sub, pend) => `<${pend ? 'button' : 'div'} class="kpi ${cls}" ${pend ? `data-pend="${pend}" id="k-${pend}"` : ''}><span class="lab">${lab}</span><span class="val">${fmt(val)}</span><span class="sub">${sub}</span></${pend ? 'button' : 'div'}>`;
+  $('kpis').innerHTML =
+    t('destaque', 'Obras no filtro', l.length, `${fmt(l.filter((o) => o.a).length)} em andamento`) +
+    t('alerta', 'Sem comprador definido', semc, 'ver na lista ↓', 'semcomp') +
+    t('alerta', 'Sem região', l.filter((o) => o.r === 'Sem região').length, 'falta município no SIGO', 'semreg') +
+    t('alerta', 'Sem fase', l.filter((o) => o.s === 'Sem fase').length, 'ver na lista ↓', 'semfase') +
+    t('alerta', 'Duplicadas', l.filter((o) => o.dup).length, 'mesmo código de obra', 'dup');
+  $('kpis').querySelectorAll('[data-pend]').forEach((b) => b.addEventListener('click', () => {
+    st.pend = b.dataset.pend; $('sel-pend').value = st.pend; tabLista(OBRAS.filter((o) => passa(o, false)));
+    $('sec-lista').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  }));
+}
+function mapa(lista, g) {
+  const ns = 'http://www.w3.org/2000/svg', svg = $('map');
+  svg.innerHTML = '';
+  const gA = document.createElementNS(ns, 'g'), gB = document.createElementNS(ns, 'g'), gL = document.createElementNS(ns, 'g');
+  for (const a of AREAS) {
+    const r = g[a.id];
+    const p = document.createElementNS(ns, 'path');
+    p.setAttribute('d', a.d); p.setAttribute('class', 'area' + (st.reg === a.id ? ' sel' : ''));
+    const c = r && r.principal ? (st.c !== 'Todos' && st.c !== 'Outros' ? st.c : r.principal) : null;
+    p.style.fill = c ? `color-mix(in srgb, ${COR[c]} 58%, var(--surface))` : 'var(--land)';
+    p.style.opacity = st.reg && st.reg !== a.id ? 0.4 : 1;
+    p.addEventListener('mousemove', (ev) => dica(ev, a, r));
+    p.addEventListener('mouseleave', () => ($('tip').style.display = 'none'));
+    p.addEventListener('click', () => { st.reg = st.reg === a.id ? null : a.id; tudo(false); });
+    gA.appendChild(p);
+    const t = document.createElementNS(ns, 'text');
+    t.setAttribute('x', a.lx); t.setAttribute('y', a.ly); t.setAttribute('class', 'lbl');
+    if (a.id.startsWith('SP - ') || a.id.startsWith('MG - ')) t.style.fontSize = '9.5px';
+    const t1 = document.createElementNS(ns, 'tspan'); t1.textContent = a.label; t1.setAttribute('x', a.lx); t.appendChild(t1);
+    if (r) { const t2 = document.createElementNS(ns, 'tspan'); t2.textContent = fmt(r.total); t2.setAttribute('x', a.lx); t2.setAttribute('dy', '14'); t2.setAttribute('class', 'n'); t.appendChild(t2); }
+    gL.appendChild(t);
+  }
+  const pts = {};
+  for (const o of lista) {
+    if (!o.xy) continue;
+    const k = o.m + '|' + o.uf + '|' + grupoComp(o.c);
+    (pts[k] ||= { x: o.xy[0], y: o.xy[1], c: grupoComp(o.c), n: 0 }).n++;
+  }
+  Object.values(pts).sort((a, b) => b.n - a.n).forEach((b) => {
+    const c = document.createElementNS(ns, 'circle');
+    const off = ['Elias', 'Maik', 'Marcelo', 'Outros'].indexOf(b.c) - 1.5;
+    c.setAttribute('cx', b.x + off * 1.8); c.setAttribute('cy', b.y); c.setAttribute('r', 2.2 + Math.sqrt(b.n) * 2.1);
+    c.setAttribute('class', 'bub'); c.style.fill = COR[b.c]; c.style.opacity = b.c === 'Outros' ? 0.6 : 0.95;
+    gB.appendChild(c);
+  });
+  svg.append(gA, gB, gL);
+}
+function dica(ev, a, r) {
+  const tip = $('tip'), box = $('mapcard').getBoundingClientRect();
+  tip.innerHTML = `<h3>${esc(a.id)}</h3>` + (r ? `<table>
+    <tr><td>Obras no filtro</td><td>${fmt(r.total)}</td></tr><tr><td>Em andamento</td><td>${fmt(r.ativas)}</td></tr>
+    <tr><td><i class="dot" style="background:var(--elias)"></i> Elias</td><td>${r.Elias}</td></tr>
+    <tr><td><i class="dot" style="background:var(--maik)"></i> Maik</td><td>${r.Maik}</td></tr>
+    <tr><td><i class="dot" style="background:var(--marcelo)"></i> Marcelo</td><td>${r.Marcelo}</td></tr>
+    <tr><td>Outros / sem comprador</td><td>${r.outros}</td></tr><tr><td>Principal</td><td>${r.principal || '—'}</td></tr></table>
+    <div class="foot" style="margin-top:6px">Clique para filtrar pela região</div>` : '<div class="foot">Nenhuma obra neste filtro.</div>');
+  tip.style.display = 'block';
+  let x = ev.clientX - box.left + 14, y = ev.clientY - box.top + 14;
+  if (x + tip.offsetWidth > box.width - 8) x = ev.clientX - box.left - tip.offsetWidth - 14;
+  if (y + tip.offsetHeight > box.height - 8) y = box.height - tip.offsetHeight - 8;
+  tip.style.left = x + 'px'; tip.style.top = y + 'px';
+}
+function stackHTML(cont, total) {
+  return ETAPAS.map((e) => (cont[e] ? `<i title="${e}: ${cont[e]}" style="width:${(cont[e] / total) * 100}%;background:${ETCOR[e]}"></i>` : '')).join('');
+}
+function compradores(lista, g) {
+  const by = {}; lista.forEach((o) => { const k = grupoComp(o.c); (by[k] ||= []).push(o); });
+  const regs = (c) => Object.values(g).filter((r) => r.principal === c).length;
+  $('comps').innerHTML = MAIN.map((c) => {
+    const l = by[c] || [], ct = {}; l.forEach((o) => (ct[o.e] = (ct[o.e] || 0) + 1));
+    return `<button class="comp" data-cc="${c}" aria-pressed="${st.c === c}" style="--c:${COR[c]}">
+      <span class="top"><span class="nm">${c}</span><span class="big">${fmt(l.length)}</span></span>
+      <span class="stack">${l.length ? stackHTML(ct, l.length) : ''}</span>
+      <span class="meta">${fmt(l.filter((o) => o.a).length)} em andamento · principal em ${regs(c)} ${regs(c) === 1 ? 'região' : 'regiões'}</span></button>`;
+  }).join('');
+  $('comps').querySelectorAll('[data-cc]').forEach((b) => b.addEventListener('click', () => setComp(st.c === b.dataset.cc ? 'Todos' : b.dataset.cc)));
+  $('etleg').innerHTML = ETAPAS.map((e) => `<span><i class="sw" style="background:${ETCOR[e]};width:10px;height:10px"></i>${e}</span>`).join('');
+  const out = {}; (by.Outros || []).forEach((o) => (out[o.c] = (out[o.c] || 0) + 1));
+  $('outros').innerHTML = Object.keys(out).length ? '<b style="color:var(--ink)">Outros</b>' + Object.entries(out).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<div><span>${esc(k)}</span><span>${fmt(v)}</span></div>`).join('') : '';
+}
+function tabComp(lista) {
+  const ordem = [...new Set([...CAD.compradores.map(([, v]) => trim(v)), 'Sem comprador', ...lista.map((o) => o.c)])];
+  const linhas = ordem.map((c) => { const l = lista.filter((o) => o.c === c); const ct = {}; l.forEach((o) => (ct[o.e] = (ct[o.e] || 0) + 1)); return { c, n: l.length, a: l.filter((o) => o.a).length, ct }; });
+  const tot = lista.length, max = Math.max(1, ...linhas.flatMap((x) => ETAPAS.map((e) => x.ct[e] || 0)));
+  const cel = (v) => v ? `<td style="background:color-mix(in srgb, var(--brand) ${Math.round(8 + (v / max) * 52)}%, var(--surface));${v / max > 0.55 ? 'color:var(--surface);' : ''}">${fmt(v)}</td>` : '<td class="zero">–</td>';
+  const sum = (f) => linhas.reduce((s, x) => s + f(x), 0);
+  $('t-comp').innerHTML = `<thead><tr><th class="l">Comprador</th><th>Total</th><th>% do total</th><th>Em andamento</th>${ETAPAS.map((e) => `<th>${e}</th>`).join('')}</tr></thead><tbody>` +
+    linhas.map((x) => `<tr><td class="l">${MAIN.includes(x.c) ? `<i class="dot" style="background:${COR[x.c]}"></i> ` : ''}${esc(x.c)}</td><td><b>${x.n ? fmt(x.n) : '–'}</b></td><td>${tot && x.n ? ((x.n / tot) * 100).toFixed(1).replace('.', ',') + '%' : '–'}</td><td>${x.a ? fmt(x.a) : '–'}</td>${ETAPAS.map((e) => cel(x.ct[e] || 0)).join('')}</tr>`).join('') +
+    `<tr class="tot"><td class="l">Total</td><td>${fmt(tot)}</td><td>${tot ? '100,0%' : '–'}</td><td>${fmt(sum((x) => x.a))}</td>${ETAPAS.map((e) => `<td>${fmt(sum((x) => x.ct[e] || 0))}</td>`).join('')}</tr></tbody>`;
+}
+function tabReg(g) {
+  const cols = [['r', 'Região', 'l'], ['uf', 'UF', 'l'], ['principal', 'Principal', 'l'], ['total', 'Total'], ['ativas', 'Em andamento'], ['Elias', 'Elias'], ['Maik', 'Maik'], ['Marcelo', 'Marcelo'], ['outros', 'Outros / sem comp.'], ['div', 'Divisão', 'l']];
+  const tot = Object.values(g).reduce((s, r) => s + r.total, 0);
+  let rows = Object.entries(g).map(([r, v]) => ({ r, uf: r === 'Sem região' ? '–' : r.slice(0, 2), ...v }));
+  const [k, dir] = st.sortReg;
+  rows.sort((a, b) => { const x = a[k] ?? '', y = b[k] ?? ''; return (typeof x === 'number' ? x - y : String(x).localeCompare(String(y), 'pt')) * dir; });
+  const pill = (p) => (p ? `<span class="pill" style="background:${SOFT[p]}">${p}</span>` : '<span class="pill" style="background:var(--land)">—</span>');
+  const seg = (n, t, c) => (n ? `<i style="width:${(n / t) * 100}%;background:${c}"></i>` : '');
+  const num = (v) => (v ? fmt(v) : '<span class="zero">–</span>');
+  $('t-reg').innerHTML = `<thead><tr>${cols.map(([c, l, al]) => `<th class="${al || ''} ${c !== 'div' ? 'sort' : ''}" data-k="${c}">${l}${k === c ? (dir > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('')}</tr></thead><tbody>` +
+    rows.map((x) => `<tr class="click ${st.reg === x.r ? 'sel' : ''}" data-r="${esc(x.r)}"><td class="l"><b>${esc(x.r)}</b></td><td class="l">${x.uf}</td><td class="l">${pill(x.principal)}</td><td><b>${fmt(x.total)}</b></td><td>${num(x.ativas)}</td><td>${num(x.Elias)}</td><td>${num(x.Maik)}</td><td>${num(x.Marcelo)}</td><td>${num(x.outros)}</td>
+      <td class="l"><span class="mini">${seg(x.Elias, x.total, 'var(--elias)')}${seg(x.Maik, x.total, 'var(--maik)')}${seg(x.Marcelo, x.total, 'var(--marcelo)')}${seg(x.outros, x.total, 'var(--outros)')}</span> <span class="foot">${tot ? ((x.total / tot) * 100).toFixed(1).replace('.', ',') : 0}%</span></td></tr>`).join('') +
+    `<tr class="tot"><td class="l">Total</td><td></td><td></td>${['total', 'ativas', 'Elias', 'Maik', 'Marcelo', 'outros'].map((c) => `<td>${fmt(rows.reduce((s, x) => s + x[c], 0))}</td>`).join('')}<td></td></tr></tbody>`;
+  $('t-reg').querySelectorAll('th.sort').forEach((th) => th.addEventListener('click', () => {
+    const c = th.dataset.k; st.sortReg = [c, st.sortReg[0] === c ? -st.sortReg[1] : (['r', 'uf', 'principal'].includes(c) ? 1 : -1)]; tabReg(g);
+  }));
+  $('t-reg').querySelectorAll('tr[data-r]').forEach((tr) => tr.addEventListener('click', () => { st.reg = st.reg === tr.dataset.r ? null : tr.dataset.r; tudo(false); }));
+}
+function tabLista(lista) {
+  const q = norm(st.busca);
+  const pend = { semcomp: (o) => o.c === 'Aguardando informação' || o.c === 'Sem comprador', semreg: (o) => o.r === 'Sem região', semfase: (o) => o.s === 'Sem fase', dup: (o) => o.dup, naomap: (o) => o.s === 'Fase não mapeada' }[st.pend];
+  let l = lista.filter((o) => (!pend || pend(o)) && (!q || norm([o.o, o.m, o.uf, o.ct, o.f, o.c, o.r].join(' ')).includes(q)));
+  const cols = [['o', 'Obra'], ['m', 'Município'], ['uf', 'UF'], ['ct', 'Contrato'], ['f', 'Fase no SIGO'], ['e', 'Etapa'], ['c', 'Comprador'], ['r', 'Região']];
+  const [k, dir] = st.sortLista;
+  l = [...l].sort((a, b) => String(a[k]).localeCompare(String(b[k]), 'pt', { numeric: true }) * dir);
+  $('lista-n').textContent = `${fmt(l.length)} obra(s)` + (st.reg ? ` · região ${st.reg}` : '');
+  const falta = (v, cond) => (cond ? `<span class="warn">${esc(v || '— falta —')}</span>` : esc(v));
+  $('t-lista').innerHTML = `<thead><tr>${cols.map(([c, n]) => `<th class="l sort" data-k="${c}">${n}${k === c ? (dir > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('')}</tr></thead><tbody>` +
+    (l.length ? l.map((o) => `<tr class="${o.dup ? 'dup' : ''}"><td class="l"><b>${esc(o.o)}</b></td><td class="l">${falta(o.m, !o.m)}</td><td class="l">${esc(o.uf)}</td><td class="l">${esc(o.ct)}</td><td class="l">${falta(o.f, !o.f || o.s === 'Fase não mapeada')}</td><td class="l">${esc(o.e)}</td><td class="l">${falta(o.c, o.c === 'Aguardando informação' || o.c === 'Sem comprador')}</td><td class="l">${falta(o.r, o.r === 'Sem região')}</td></tr>`).join('')
+      : `<tr><td class="l" colspan="8">Nenhuma obra com esses filtros.</td></tr>`) + '</tbody>';
+  $('t-lista').querySelectorAll('th.sort').forEach((th) => th.addEventListener('click', () => {
+    const c = th.dataset.k; st.sortLista = [c, st.sortLista[0] === c ? -st.sortLista[1] : 1]; tabLista(lista);
+  }));
+}
+function setComp(c) {
+  st.c = c; document.querySelectorAll('[data-c]').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.c === c))); tudo(false);
+}
+
+/* ---------- carregar dados ---------- */
+function carregar(dados, origem) {
+  CAD = dados.cad;
+  OBRAS = processar(dados.linhas, CAD);
+  $('fonte').textContent = (dados.fonte || 'SIGO') + ' · ' + fmt(OBRAS.length) + ' linhas';
+  const ufs = [...new Set(OBRAS.map((o) => o.uf).filter(Boolean))].sort();
+  $('sel-uf').innerHTML = ['Todos', ...ufs].map((u) => `<option ${u === st.uf ? 'selected' : ''}>${u}</option>`).join('');
+  if (!ufs.includes(st.uf)) st.uf = 'Todos';
+  st.reg = null; preset('andamento'); tudo(true);
+  const naoMap = OBRAS.filter((o) => o.s === 'Fase não mapeada').length;
+  $('rodape').textContent = `Regras iguais às do Painel do Excel: fases, compradores, regiões e regras pelo código da obra vêm da aba Cadastros. "Em andamento" = status com Ativa? = Sim. Comprador principal = quem tem mais obras na região entre Elias, Maik e Marcelo; "Dividido" quando ninguém passa de 60%.` + (naoMap ? ` Atenção: ${naoMap} obra(s) com fase que não está em Cadastros.` : '');
+  if (origem) { $('banner').style.display = 'flex'; $('banner-txt').textContent = origem; } else $('banner').style.display = 'none';
+}
+function lerPlanilha(buf, nome) {
+  const wb = XLSX.read(buf, { type: 'array' });
+  const acha = (ws) => { const a = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false }); const i = a.findIndex((r) => low(r[0]).startsWith('obra')); return i < 0 ? null : { a, i }; };
+  let base = null, fonte = '';
+  for (const n of ['Relatório', ...wb.SheetNames]) { const ws = wb.Sheets[n]; if (!ws) continue; const r = acha(ws); if (r) { base = r; fonte = trim((r.a.find((x) => /atualizado/i.test(x[0] || '')) || [''])[0]); break; } }
+  if (!base) throw new Error('Não achei a tabela com o cabeçalho "Obra". Use o relatório do SIGO ou o Painel do Excel.');
+  const h = base.a[base.i].map(low);
+  const idx = ['obra', 'munic', 'uf', 'contrato', 'fase', 'comprador'].map((k, j) => { const p = h.findIndex((x) => x.startsWith(k) || x.includes(k)); return p < 0 ? j : p; });
+  const linhas = base.a.slice(base.i + 1).map((r) => idx.map((p) => trim(r[p]))).filter((r) => r.some(Boolean));
+  let cad = PUB.cad, usouCad = false;
+  const wc = wb.Sheets['Cadastros'];
+  if (wc) {
+    const a = XLSX.utils.sheet_to_json(wc, { header: 1, defval: '', raw: false });
+    const bloco = (c1, c2) => a.slice(4).map((r) => r.slice(c1, c2 + 1).map(trim)).filter((r) => r[0]);
+    if (low((a[3] || [])[3]) === 'status') { cad = { fases: bloco(0, 1), status: bloco(3, 5), compradores: bloco(7, 8), regioes: bloco(10, 11), municipios: bloco(13, 15), regras: low((a[3] || [])[21]).startsWith('início') ? bloco(21, 23) : PUB.cad.regras }; usouCad = true; }
+  }
+  carregar({ linhas, cad, fonte: fonte || nome }, `Mostrando o arquivo "${nome}" (${fmt(linhas.length)} linhas${usouCad ? ', com os Cadastros dele' : ', com os Cadastros publicados'}). Fica só neste navegador; recarregar a página volta aos dados publicados.`);
+}
+
+/* ---------- eventos ---------- */
+document.querySelectorAll('[data-c]').forEach((b) => b.addEventListener('click', () => setComp(b.dataset.c)));
+document.querySelectorAll('[data-p]').forEach((b) => b.addEventListener('click', () => { preset(b.dataset.p); tudo(true); }));
+$('sel-uf').addEventListener('change', (e) => { st.uf = e.target.value; st.reg = null; tudo(false); });
+$('regchip').addEventListener('click', () => { st.reg = null; tudo(false); });
+$('busca').addEventListener('input', (e) => { st.busca = e.target.value; tabLista(OBRAS.filter((o) => passa(o, false))); });
+$('sel-pend').addEventListener('change', (e) => { st.pend = e.target.value; tabLista(OBRAS.filter((o) => passa(o, false))); });
+document.addEventListener('click', (e) => { const d = $('det-status'); if (d.open && !d.contains(e.target)) d.open = false; });
+$('voltar').addEventListener('click', () => carregar(PUB, null));
+$('arquivo').addEventListener('change', async (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  try { lerPlanilha(new Uint8Array(await f.arrayBuffer()), f.name); }
+  catch (err) { $('banner').style.display = 'flex'; $('banner-txt').textContent = 'Não consegui ler esse arquivo: ' + err.message; }
+  e.target.value = '';
+});
+Promise.all(['areas.json', 'municipios.json', 'dados.json'].map((u) => fetch(u).then((r) => r.json())))
+  .then(([a, geo, d]) => { AREAS = a; GEO = geo; PUB = d; carregar(d, null); })
+  .catch(() => { $('fonte').textContent = 'Não consegui carregar os dados. Recarregue a página.'; });
+</script>
+</body>
+</html>
