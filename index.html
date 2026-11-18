@@ -536,7 +536,22 @@ function mapa(lista, g) {
 }
 
 /* ---------- estado aberto: cidades ---------- */
-let ultimoUF = null, arrasto = null, acabouDeArrastar = false;
+let ultimoUF = null, arrasto = null, acabouDeArrastar = false, animando = 0;
+const BRVB = [0, 0, 790, 810];
+const semMov = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+function vbAtual() { return ($('map').getAttribute('viewBox') || '0 0 790 810').split(/\s+/).map(Number); }
+function animarVB(de, para, ms = 550, fim) {
+  const svg = $('map'), id = ++animando;
+  if (semMov()) { svg.setAttribute('viewBox', para.join(' ')); if (fim) fim(); return; }
+  const t0 = performance.now(), ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+  const passo = (agora) => {
+    if (id !== animando) return;
+    const t = Math.min(1, (agora - t0) / ms), e = ease(t);
+    svg.setAttribute('viewBox', de.map((v, i) => v + (para[i] - v) * e).join(' '));
+    if (t < 1) requestAnimationFrame(passo); else if (fim) fim();
+  };
+  requestAnimationFrame(passo);
+}
 async function geoUF(uf) {
   if (!MUNGEO[uf]) MUNGEO[uf] = fetch(`mun_${uf}.json`).then((r) => { if (!r.ok) throw new Error('sem mapa'); return r.json(); });
   return MUNGEO[uf];
@@ -547,12 +562,21 @@ function enquadrar(geo) {
 }
 async function abrirUF(uf) {
   if (!uf || uf === 'Todos') return voltarBR();
+  st.animDe = vbAtual();
   st.view = uf; st.uf = uf; st.reg = null; st.mun = null; st.side = 'mun'; st.vb = null;
   $('sel-uf').value = uf;
   try { enquadrar(await geoUF(uf)); } catch (e) { st.vb = null; }
   tudo(false);
 }
 function voltarBR() {
+  if (st.view !== 'BR' && !semMov()) {
+    const de = vbAtual(); $('tip').style.display = 'none';
+    animarVB(de, BRVB, 450, () => voltarBRjá());
+    return;
+  }
+  voltarBRjá();
+}
+function voltarBRjá() {
   st.view = 'BR'; st.uf = 'Todos'; st.reg = null; st.mun = null; st.side = 'comp'; st.vb = null;
   $('sel-uf').value = 'Todos'; $('tip').style.display = 'none';
   tudo(false);
@@ -575,7 +599,9 @@ async function mapaUF(base) {
   if (st.view !== uf) return;
   if (!st.vb) enquadrar(geo);
   svg.classList.add('uf');
-  svg.setAttribute('viewBox', st.vb.join(' '));
+  const de = st.animDe; st.animDe = null;
+  if (de && !semMov()) { svg.setAttribute('viewBox', de.join(' ')); requestAnimationFrame(() => animarVB(de, st.vb, de[2] > 300 ? 700 : 380)); }
+  else { animando++; svg.setAttribute('viewBox', st.vb.join(' ')); }
   const agg = porCidade(base);
   const gM = document.createElementNS(ns, 'g'), gR = document.createElementNS(ns, 'g'), gB = document.createElementNS(ns, 'g'), gN = document.createElementNS(ns, 'g');
   for (const m of geo.m) {
@@ -645,6 +671,8 @@ function zoom(f, cx, cy) {
   const minW = 8, maxW = 790;
   if (nw < minW) { nh *= minW / nw; nw = minW; } if (nw > maxW) { nh *= maxW / nw; nw = maxW; }
   const px0 = cx ?? x + w / 2, py0 = cy ?? y + h / 2;
+  const anim = cx == null;
+  if (anim) st.animDe = [...st.vb];
   st.vb = [px0 - (px0 - x) * (nw / w), py0 - (py0 - y) * (nh / h), nw, nh];
   if (ultimoUF) mapaUF(ultimoUF);
 }
@@ -654,13 +682,14 @@ function pontoSVG(ev) {
 }
 $('z-in').addEventListener('click', () => zoom(0.66));
 $('z-out').addEventListener('click', () => zoom(1 / 0.66));
-$('z-fit').addEventListener('click', () => { if (MUNGEO[st.view]) MUNGEO[st.view].then((g) => { enquadrar(g); if (ultimoUF) mapaUF(ultimoUF); }); });
+$('z-fit').addEventListener('click', () => { if (MUNGEO[st.view]) MUNGEO[st.view].then((g) => { st.animDe = [...st.vb]; enquadrar(g); if (ultimoUF) mapaUF(ultimoUF); }); });
 $('map').addEventListener('wheel', (ev) => {
   if (st.view === 'BR' || !(ev.ctrlKey || ev.metaKey)) return;
   ev.preventDefault(); const [cx, cy] = pontoSVG(ev); zoom(ev.deltaY > 0 ? 1.18 : 0.85, cx, cy);
 }, { passive: false });
 $('map').addEventListener('pointerdown', (ev) => {
   if (st.view === 'BR' || ev.pointerType === 'touch' && !ev.isPrimary) return;
+  animando++; $('map').setAttribute('viewBox', st.vb.join(' '));
   arrasto = { x: ev.clientX, y: ev.clientY, vb: [...st.vb], moveu: false };
 });
 window.addEventListener('pointermove', (ev) => {
