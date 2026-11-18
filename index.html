@@ -46,6 +46,7 @@
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html, body { margin: 0; }
 body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 14px; line-height: 1.4; }
 .wrap { max-width: 1320px; margin: 0 auto; padding: 0 20px 40px; display: grid; gap: 18px; }
@@ -81,7 +82,7 @@ details.status summary::-webkit-details-marker { display: none; }
 .pop .et > button { font: inherit; font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--brand); background: none; border: 0; padding: 0; text-align: left; cursor: pointer; }
 .pop label { display: flex; gap: 6px; align-items: center; font-size: 13px; cursor: pointer; }
 .pop label span.n { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums; }
-.regchip { display: none; }
+.regchip, .munchip { display: none; }
 .kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
 .kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; gap: 2px; text-align: left; font: inherit; color: inherit; }
 .kpi.destaque { border-top: 4px solid var(--gold); background: linear-gradient(180deg, color-mix(in srgb, var(--gold) 9%, var(--surface)), var(--surface) 60%); }
@@ -97,6 +98,28 @@ details.status summary::-webkit-details-marker { display: none; }
 .main { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(320px, 1fr); gap: 16px; align-items: start; }
 .mapcard { position: relative; padding: 8px; }
 svg#map { width: 100%; height: auto; display: block; }
+svg#map.uf { cursor: grab; touch-action: pan-y; }
+svg#map.uf.arrastando { cursor: grabbing; }
+.maptop { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 4px 6px 6px; flex-wrap: wrap; }
+.crumb { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 13px; }
+.crumb button { font: inherit; font-size: 13px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); padding: 4px 10px; border-radius: 8px; cursor: pointer; }
+.crumb button:hover { border-color: var(--muted); }
+.crumb .sep { color: var(--muted); }
+.crumb b { font-family: var(--font-display); font-size: 15px; }
+.zoom { display: flex; gap: 4px; }
+.zoom[hidden] { display: none; }
+.zb { font: inherit; font-weight: 700; font-size: 16px; width: 32px; height: 32px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 8px; cursor: pointer; line-height: 1; }
+.zb:hover { border-color: var(--muted); }
+.mun { stroke: var(--surface); stroke-width: .7; vector-effect: non-scaling-stroke; cursor: pointer; transition: opacity .15s; }
+.mun:hover, .mun.sel { stroke: var(--ink); stroke-width: 1.8; }
+.regline { fill: none; stroke: var(--ink); stroke-width: 1.4; vector-effect: non-scaling-stroke; opacity: .5; stroke-dasharray: 5 4; pointer-events: none; }
+.reglbl { font-family: var(--font-display); font-weight: 800; fill: var(--ink); opacity: .55; text-anchor: middle; pointer-events: none; paint-order: stroke; stroke: var(--surface); stroke-linejoin: round; text-transform: uppercase; letter-spacing: .04em; }
+.badge { stroke: #fff; stroke-width: 1.3; vector-effect: non-scaling-stroke; pointer-events: none; }
+.badgen { font-family: var(--font-display); font-weight: 800; fill: #fff; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+.mname { font-family: var(--font-display); font-weight: 700; fill: var(--ink); dominant-baseline: central; pointer-events: none; paint-order: stroke; stroke: var(--surface); stroke-linejoin: round; }
+.sidetabs { display: flex; gap: 6px; }
+#pane-mun { max-height: 560px; overflow: auto; }
+#pane-mun table.t td, #pane-mun table.t th { padding: 6px 6px; }
 .area { stroke: var(--surface); stroke-width: 1.2; cursor: pointer; transition: fill .2s, opacity .2s; }
 .area:hover, .area.sel { stroke: var(--ink); stroke-width: 2.2; }
 .lbl { font-family: var(--font-display); font-weight: 700; font-size: 11px; fill: var(--ink); text-anchor: middle; pointer-events: none; paint-order: stroke; stroke: var(--surface); stroke-width: 3px; stroke-linejoin: round; }
@@ -241,13 +264,22 @@ table.t thead th.l:first-child { z-index: 3; }
       <select id="sel-uf"></select>
     </div>
     <button class="chip regchip" id="regchip" aria-label="Tirar filtro de região"></button>
+    <button class="chip munchip" id="munchip" aria-label="Tirar filtro de cidade"></button>
   </div>
 
   <div class="kpis" id="kpis"></div>
 
   <div class="main">
     <div class="card mapcard" id="mapcard">
-      <svg id="map" viewBox="0 0 790 810" role="img" aria-label="Mapa do Brasil com as regiões coloridas pelo comprador principal"></svg>
+      <div class="maptop">
+        <div class="crumb" id="crumb"></div>
+        <div class="zoom" id="zoom" hidden>
+          <button class="zb" id="z-in" aria-label="Aproximar">+</button>
+          <button class="zb" id="z-out" aria-label="Afastar">−</button>
+          <button class="zb" id="z-fit" aria-label="Enquadrar o estado inteiro">⤢</button>
+        </div>
+      </div>
+      <svg id="map" viewBox="0 0 790 810" role="img" aria-label="Mapa com as obras coloridas pelo comprador principal"></svg>
       <div class="legend">
         <b>Comprador principal</b>
         <div><i class="sw" style="background:color-mix(in srgb, var(--elias) 58%, var(--surface))"></i>Elias</div>
@@ -255,15 +287,25 @@ table.t thead th.l:first-child { z-index: 3; }
         <div><i class="sw" style="background:color-mix(in srgb, var(--marcelo) 58%, var(--surface))"></i>Marcelo</div>
         <div><i class="sw" style="background:color-mix(in srgb, var(--div) 58%, var(--surface))"></i>Dividido (ninguém com 60%+)</div>
         <div><i class="sw" style="background:var(--land)"></i>Sem obra no filtro</div>
-        <div><i class="dot" style="background:var(--muted)"></i>Município (tamanho = nº de obras)</div>
+        <div id="leg-br"><i class="dot" style="background:var(--muted)"></i>Município (tamanho = nº de obras)</div>
+        <div id="leg-uf" hidden><i class="dot" style="background:var(--muted)"></i>Número = obras na cidade · tracejado = região</div>
       </div>
       <div class="tip" id="tip"></div>
     </div>
     <div class="card comps">
-      <div class="sec-head"><h2>Compradores</h2><span class="hint">clique para filtrar</span></div>
-      <div id="comps" style="display:grid;gap:10px"></div>
-      <div class="etleg" id="etleg"></div>
-      <div class="outros" id="outros"></div>
+      <div class="sec-head">
+        <div class="sidetabs" role="group" aria-label="Painel lateral">
+          <button class="chip" id="tab-comp" data-side="comp" aria-pressed="true">Compradores</button>
+          <button class="chip" id="tab-mun" data-side="mun" aria-pressed="false">Cidades</button>
+        </div>
+        <span class="hint" id="side-hint">clique para filtrar</span>
+      </div>
+      <div id="pane-comp" style="display:grid;gap:12px">
+        <div id="comps" style="display:grid;gap:10px"></div>
+        <div class="etleg" id="etleg"></div>
+        <div class="outros" id="outros"></div>
+      </div>
+      <div id="pane-mun" hidden><table class="t" id="t-mun"></table></div>
     </div>
   </div>
 
@@ -306,7 +348,9 @@ const ETAPAS = ['Vistoria', 'Documentação', 'Orçamento', 'Execução', 'Encer
 const ETCOR = { 'Vistoria': '#7fb2d9', 'Documentação': '#a9c4a0', 'Orçamento': '#e5c15a', 'Execução': '#2f9e6f', 'Encerrada': '#7b8a83', 'Cancelada': '#c7705f', 'Sem fase': '#c9cfcc' };
 const POLOS = { SP: [['Sorocaba', 'Sorocaba'], ['Piracicaba', 'Piracicaba'], ['Ribeirão Preto', 'Ribeirão Preto'], ['Rio Preto', 'São José do Rio Preto']],
                 MG: [['Rio Doce/Vale do Aço', 'Governador Valadares'], ['Triângulo Mineiro', 'Uberlândia']] };
-const st = { c: 'Todos', uf: 'Todos', status: new Set(), reg: null, busca: '', pend: '', sortReg: ['total', -1], sortLista: ['o', 1] };
+const st = { c: 'Todos', uf: 'Todos', status: new Set(), reg: null, mun: null, view: 'BR', side: 'comp', vb: null, busca: '', pend: '', sortReg: ['total', -1], sortLista: ['o', 1] };
+const MUNGEO = {};
+const chaveMun = (o) => norm(o.m) + '|' + o.uf;
 let AREAS = [], GEO = null, PUB = null, OBRAS = [], CAD = null;
 const $ = (id) => document.getElementById(id);
 const fmt = (n) => Number(n).toLocaleString('pt-BR');
@@ -355,12 +399,30 @@ function regiaoAuto(uf, xy) {
 
 /* ---------- filtros ---------- */
 const grupoComp = (c) => (MAIN.includes(c) ? c : 'Outros');
-function passa(o, semRegiao) {
+function passa(o, semRegiao, semCidade) {
   if (!st.status.has(o.s)) return false;
   if (st.c !== 'Todos' && grupoComp(o.c) !== st.c) return false;
   if (st.uf !== 'Todos' && o.uf !== st.uf) return false;
   if (!semRegiao && st.reg && o.r !== st.reg) return false;
+  if (!semCidade && st.mun && chaveMun(o) !== st.mun) return false;
   return true;
+}
+function porCidade(lista) {
+  const g = {};
+  for (const o of lista) {
+    if (!o.m) continue;
+    const k = chaveMun(o);
+    const r = g[k] || (g[k] = { k, nome: o.m, uf: o.uf, reg: o.r, total: 0, ativas: 0, Elias: 0, Maik: 0, Marcelo: 0, outros: 0 });
+    r.total++; if (o.a) r.ativas++;
+    if (MAIN.includes(o.c)) r[o.c]++; else r.outros++;
+  }
+  for (const r of Object.values(g)) {
+    const soma = r.Elias + r.Maik + r.Marcelo;
+    if (!soma) { r.principal = null; continue; }
+    const top = MAIN.reduce((a, b) => (r[b] > r[a] ? b : a));
+    r.principal = r[top] / soma >= 0.6 ? top : 'Dividido';
+  }
+  return g;
 }
 function preset(p) {
   st.status = new Set(CAD.status.map(([s, e, a]) => [trim(s), trim(e), low(a) === 'sim']).filter(([s, e, a]) =>
@@ -408,10 +470,18 @@ function tudo(refazerStatus) {
   $('sum-status').textContent = `Status (${nSt} de ${tot}) ▾`;
   $('regchip').style.display = st.reg ? 'inline-flex' : 'none';
   $('regchip').textContent = st.reg ? `Região: ${st.reg} ✕` : '';
-  const semReg = OBRAS.filter((o) => passa(o, true));
-  const lista = st.reg ? semReg.filter((o) => o.r === st.reg) : semReg;
+  const semReg = OBRAS.filter((o) => passa(o, true, true));
+  const daReg = st.reg ? semReg.filter((o) => o.r === st.reg) : semReg;
+  const lista = st.mun ? daReg.filter((o) => chaveMun(o) === st.mun) : daReg;
+  const nomeMun = st.mun ? (OBRAS.find((o) => chaveMun(o) === st.mun) || {}).m : '';
+  $('munchip').style.display = st.mun ? 'inline-flex' : 'none';
+  $('munchip').textContent = st.mun ? `Cidade: ${nomeMun} ✕` : '';
   const g = resumo(semReg);
-  kpis(lista); mapa(semReg, g); compradores(lista, g); tabComp(lista); tabReg(g); tabLista(lista);
+  kpis(lista);
+  if (st.view === 'BR') mapa(semReg, g); else mapaUF(semReg);
+  migalha();
+  compradores(lista, g); tabMun(daReg); lado();
+  tabComp(lista); tabReg(g); tabLista(lista);
 }
 function kpis(l) {
   const semc = l.filter((o) => o.c === 'Aguardando informação' || o.c === 'Sem comprador').length;
@@ -429,7 +499,7 @@ function kpis(l) {
 }
 function mapa(lista, g) {
   const ns = 'http://www.w3.org/2000/svg', svg = $('map');
-  svg.innerHTML = '';
+  svg.innerHTML = ''; svg.setAttribute('viewBox', '0 0 790 810'); svg.classList.remove('uf');
   const gA = document.createElementNS(ns, 'g'), gB = document.createElementNS(ns, 'g'), gL = document.createElementNS(ns, 'g');
   for (const a of AREAS) {
     const r = g[a.id];
@@ -440,10 +510,7 @@ function mapa(lista, g) {
     p.style.opacity = st.reg && st.reg !== a.id ? 0.4 : 1;
     p.addEventListener('mousemove', (ev) => dica(ev, a, r));
     p.addEventListener('mouseleave', () => ($('tip').style.display = 'none'));
-    p.addEventListener('click', (ev) => {
-      st.reg = st.reg === a.id ? null : a.id; tudo(false);
-      if (matchMedia('(pointer: coarse)').matches) { if (st.reg) dica(ev, a, r); else $('tip').style.display = 'none'; }
-    });
+    p.addEventListener('click', () => { $('tip').style.display = 'none'; abrirUF(a.uf); });
     gA.appendChild(p);
     const t = document.createElementNS(ns, 'text');
     t.setAttribute('x', a.lx); t.setAttribute('y', a.ly); t.setAttribute('class', 'lbl');
@@ -467,6 +534,165 @@ function mapa(lista, g) {
   });
   svg.append(gA, gB, gL);
 }
+
+/* ---------- estado aberto: cidades ---------- */
+let ultimoUF = null, arrasto = null, acabouDeArrastar = false;
+async function geoUF(uf) {
+  if (!MUNGEO[uf]) MUNGEO[uf] = fetch(`mun_${uf}.json`).then((r) => { if (!r.ok) throw new Error('sem mapa'); return r.json(); });
+  return MUNGEO[uf];
+}
+function enquadrar(geo) {
+  const [x, y, w, h] = geo.bbox, p = Math.max(w, h) * 0.04;
+  st.vb = [x - p, y - p, w + 2 * p, h + 2 * p];
+}
+async function abrirUF(uf) {
+  if (!uf || uf === 'Todos') return voltarBR();
+  st.view = uf; st.uf = uf; st.reg = null; st.mun = null; st.side = 'mun'; st.vb = null;
+  $('sel-uf').value = uf;
+  try { enquadrar(await geoUF(uf)); } catch (e) { st.vb = null; }
+  tudo(false);
+}
+function voltarBR() {
+  st.view = 'BR'; st.uf = 'Todos'; st.reg = null; st.mun = null; st.side = 'comp'; st.vb = null;
+  $('sel-uf').value = 'Todos'; $('tip').style.display = 'none';
+  tudo(false);
+}
+function migalha() {
+  const nome = st.view === 'BR' ? '' : (GEO.estados[st.view] || st.view);
+  $('crumb').innerHTML = st.view === 'BR'
+    ? '<b>Brasil</b><span class="hint">· clique num estado para ver as cidades</span>'
+    : `<button type="button" id="voltar-br">← Voltar</button><span class="sep">Brasil ›</span><b>${esc(st.view)} — ${esc(nome)}</b>`;
+  if (st.view !== 'BR') $('voltar-br').addEventListener('click', voltarBR);
+  $('zoom').hidden = st.view === 'BR';
+  $('leg-br').hidden = st.view !== 'BR'; $('leg-uf').hidden = st.view === 'BR';
+}
+const px = (n) => n * (st.vb ? st.vb[2] : 790) / Math.max(1, $('map').clientWidth || 600);
+async function mapaUF(base) {
+  const uf = st.view, svg = $('map'), ns = 'http://www.w3.org/2000/svg';
+  ultimoUF = base;
+  let geo;
+  try { geo = await geoUF(uf); } catch (e) { svg.innerHTML = ''; return; }
+  if (st.view !== uf) return;
+  if (!st.vb) enquadrar(geo);
+  svg.classList.add('uf');
+  svg.setAttribute('viewBox', st.vb.join(' '));
+  const agg = porCidade(base);
+  const gM = document.createElementNS(ns, 'g'), gR = document.createElementNS(ns, 'g'), gB = document.createElementNS(ns, 'g'), gN = document.createElementNS(ns, 'g');
+  for (const m of geo.m) {
+    const k = m.k + '|' + uf, r = agg[k];
+    const p = document.createElementNS(ns, 'path');
+    p.setAttribute('d', m.d); p.setAttribute('class', 'mun' + (st.mun === k ? ' sel' : ''));
+    const c = r ? (st.c !== 'Todos' && st.c !== 'Outros' ? st.c : (r.principal || 'Outros')) : null;
+    p.style.fill = c ? `color-mix(in srgb, ${COR[c]} 50%, var(--surface))` : 'var(--land)';
+    if (st.mun && st.mun !== k) p.style.opacity = 0.45;
+    p.addEventListener('mousemove', (ev) => { if (!arrasto) dicaMun(ev, m, r); });
+    p.addEventListener('mouseleave', () => ($('tip').style.display = 'none'));
+    p.addEventListener('click', (ev) => {
+      if (acabouDeArrastar) return;
+      if (!r) { dicaMun(ev, m, r); return; }
+      st.mun = st.mun === k ? null : k; tudo(false);
+      if (matchMedia('(pointer: coarse)').matches && st.mun) dicaMun(ev, m, r);
+    });
+    gM.appendChild(p);
+  }
+  const regs = AREAS.filter((a) => a.uf === uf);
+  if (regs.length > 1) for (const a of regs) {
+    const p = document.createElementNS(ns, 'path'); p.setAttribute('d', a.d); p.setAttribute('class', 'regline'); gR.appendChild(p);
+    const t = document.createElementNS(ns, 'text'); t.setAttribute('x', a.lx); t.setAttribute('y', a.ly); t.setAttribute('class', 'reglbl');
+    t.style.fontSize = px(13) + 'px'; t.style.strokeWidth = px(4) + 'px'; t.textContent = a.label; gR.appendChild(t);
+  }
+  const lista = Object.values(agg).sort((a, b) => a.total - b.total);
+  const pos = Object.fromEntries(geo.m.map((m) => [m.k + '|' + uf, m.c]));
+  const maiores = new Set(Object.values(agg).sort((a, b) => b.total - a.total).slice(0, 10).map((r) => r.k));
+  for (const r of lista) {
+    const c = pos[r.k]; if (!c) continue;
+    const rad = px(8 + Math.sqrt(r.total) * 2.4);
+    const cor = st.c !== 'Todos' && st.c !== 'Outros' ? st.c : (r.principal || 'Outros');
+    const ci = document.createElementNS(ns, 'circle');
+    ci.setAttribute('cx', c[0]); ci.setAttribute('cy', c[1]); ci.setAttribute('r', rad); ci.setAttribute('class', 'badge');
+    ci.style.fill = `color-mix(in srgb, ${COR[cor]} 85%, #000)`; gB.appendChild(ci);
+    const tn = document.createElementNS(ns, 'text');
+    tn.setAttribute('x', c[0]); tn.setAttribute('y', c[1]); tn.setAttribute('class', 'badgen'); tn.style.fontSize = px(r.total > 9 ? 10 : 11) + 'px';
+    tn.textContent = r.total; gB.appendChild(tn);
+    if (maiores.has(r.k) || st.mun === r.k) {
+      const tl = document.createElementNS(ns, 'text');
+      tl.setAttribute('x', c[0] + rad + px(3)); tl.setAttribute('y', c[1]); tl.setAttribute('class', 'mname');
+      tl.style.fontSize = px(11) + 'px'; tl.style.strokeWidth = px(3) + 'px'; tl.textContent = r.nome; gN.appendChild(tl);
+    }
+  }
+  svg.replaceChildren(gM, gR, gB, gN);
+}
+function dicaMun(ev, m, r) {
+  const tip = $('tip'), box = $('mapcard').getBoundingClientRect();
+  tip.innerHTML = `<h3>${esc(m.n)}</h3>` + (r ? `<table>
+    <tr><td>Obras no filtro</td><td>${fmt(r.total)}</td></tr><tr><td>Em andamento</td><td>${fmt(r.ativas)}</td></tr>
+    <tr><td><i class="dot" style="background:var(--elias)"></i> Elias</td><td>${r.Elias}</td></tr>
+    <tr><td><i class="dot" style="background:var(--maik)"></i> Maik</td><td>${r.Maik}</td></tr>
+    <tr><td><i class="dot" style="background:var(--marcelo)"></i> Marcelo</td><td>${r.Marcelo}</td></tr>
+    <tr><td>Outros / sem comprador</td><td>${r.outros}</td></tr><tr><td>Região</td><td>${esc(r.reg)}</td></tr></table>
+    <div class="foot" style="margin-top:6px">Clique para filtrar por esta cidade</div>` : '<div class="foot">Sem obras neste filtro.</div>');
+  tip.style.display = 'block';
+  let x = ev.clientX - box.left + 14, y = ev.clientY - box.top + 14;
+  if (x + tip.offsetWidth > box.width - 8) x = ev.clientX - box.left - tip.offsetWidth - 14;
+  if (y + tip.offsetHeight > box.height - 8) y = box.height - tip.offsetHeight - 8;
+  tip.style.left = Math.max(4, x) + 'px'; tip.style.top = Math.max(4, y) + 'px';
+}
+function zoom(f, cx, cy) {
+  if (st.view === 'BR' || !st.vb) return;
+  const geo = MUNGEO[st.view]; const [x, y, w, h] = st.vb;
+  const bw = st.vb[2];
+  let nw = w * f, nh = h * f;
+  const minW = 8, maxW = 790;
+  if (nw < minW) { nh *= minW / nw; nw = minW; } if (nw > maxW) { nh *= maxW / nw; nw = maxW; }
+  const px0 = cx ?? x + w / 2, py0 = cy ?? y + h / 2;
+  st.vb = [px0 - (px0 - x) * (nw / w), py0 - (py0 - y) * (nh / h), nw, nh];
+  if (ultimoUF) mapaUF(ultimoUF);
+}
+function pontoSVG(ev) {
+  const svg = $('map'), r = svg.getBoundingClientRect(), [x, y, w, h] = st.vb;
+  return [x + (ev.clientX - r.left) / r.width * w, y + (ev.clientY - r.top) / r.height * h];
+}
+$('z-in').addEventListener('click', () => zoom(0.66));
+$('z-out').addEventListener('click', () => zoom(1 / 0.66));
+$('z-fit').addEventListener('click', () => { if (MUNGEO[st.view]) MUNGEO[st.view].then((g) => { enquadrar(g); if (ultimoUF) mapaUF(ultimoUF); }); });
+$('map').addEventListener('wheel', (ev) => {
+  if (st.view === 'BR' || !(ev.ctrlKey || ev.metaKey)) return;
+  ev.preventDefault(); const [cx, cy] = pontoSVG(ev); zoom(ev.deltaY > 0 ? 1.18 : 0.85, cx, cy);
+}, { passive: false });
+$('map').addEventListener('pointerdown', (ev) => {
+  if (st.view === 'BR' || ev.pointerType === 'touch' && !ev.isPrimary) return;
+  arrasto = { x: ev.clientX, y: ev.clientY, vb: [...st.vb], moveu: false };
+});
+window.addEventListener('pointermove', (ev) => {
+  if (!arrasto) return;
+  const dx = ev.clientX - arrasto.x, dy = ev.clientY - arrasto.y;
+  if (!arrasto.moveu && Math.hypot(dx, dy) < 5) return;
+  if (ev.pointerType === 'touch' && !arrasto.moveu && Math.abs(dy) > Math.abs(dx)) { arrasto = null; return; }
+  arrasto.moveu = true; $('map').classList.add('arrastando'); $('tip').style.display = 'none';
+  const r = $('map').getBoundingClientRect(), [x, y, w, h] = arrasto.vb;
+  st.vb = [x - dx / r.width * w, y - dy / r.height * h, w, h];
+  $('map').setAttribute('viewBox', st.vb.join(' '));
+});
+window.addEventListener('pointerup', () => {
+  if (arrasto && arrasto.moveu) { acabouDeArrastar = true; setTimeout(() => (acabouDeArrastar = false), 0); }
+  arrasto = null; $('map').classList.remove('arrastando');
+});
+function lado() {
+  const mun = st.side === 'mun';
+  $('pane-comp').hidden = mun; $('pane-mun').hidden = !mun;
+  $('tab-comp').setAttribute('aria-pressed', String(!mun)); $('tab-mun').setAttribute('aria-pressed', String(mun));
+  $('side-hint').textContent = mun ? 'clique numa cidade para filtrar' : 'clique para filtrar';
+}
+function tabMun(lista) {
+  const rows = Object.values(porCidade(lista)).sort((a, b) => b.total - a.total || a.nome.localeCompare(b.nome, 'pt'));
+  const num = (v) => (v ? fmt(v) : '<span class="zero">–</span>');
+  const pill = (p) => (p ? `<span class="pill" style="background:${SOFT[p]}">${p}</span>` : '');
+  $('t-mun').innerHTML = `<thead><tr><th class="l">Cidade</th><th>Total</th><th>Elias</th><th>Maik</th><th>Marcelo</th><th>Outros</th></tr></thead><tbody>` +
+    (rows.length ? rows.map((r) => `<tr class="click ${st.mun === r.k ? 'sel' : ''}" data-k="${esc(r.k)}"><td class="l"><b>${esc(r.nome)}</b> <span class="foot">${esc(r.uf)}</span><br>${pill(r.principal)}</td><td><b>${fmt(r.total)}</b></td><td>${num(r.Elias)}</td><td>${num(r.Maik)}</td><td>${num(r.Marcelo)}</td><td>${num(r.outros)}</td></tr>`).join('')
+      : '<tr><td class="l" colspan="6">Nenhuma cidade neste filtro.</td></tr>') + '</tbody>';
+  $('t-mun').querySelectorAll('tr[data-k]').forEach((tr) => tr.addEventListener('click', () => { st.mun = st.mun === tr.dataset.k ? null : tr.dataset.k; tudo(false); }));
+}
+
 function dica(ev, a, r) {
   const tip = $('tip'), box = $('mapcard').getBoundingClientRect();
   tip.innerHTML = `<h3>${esc(a.id)}</h3>` + (r ? `<table>
@@ -475,7 +701,7 @@ function dica(ev, a, r) {
     <tr><td><i class="dot" style="background:var(--maik)"></i> Maik</td><td>${r.Maik}</td></tr>
     <tr><td><i class="dot" style="background:var(--marcelo)"></i> Marcelo</td><td>${r.Marcelo}</td></tr>
     <tr><td>Outros / sem comprador</td><td>${r.outros}</td></tr><tr><td>Principal</td><td>${r.principal || '—'}</td></tr></table>
-    <div class="foot" style="margin-top:6px">Clique para filtrar pela região</div>` : '<div class="foot">Nenhuma obra neste filtro.</div>');
+    <div class="foot" style="margin-top:6px">Clique para ver as cidades de ${esc(a.uf)}</div>` : `<div class="foot">Nenhuma obra neste filtro. Clique para ver ${esc(a.uf)}.</div>`);
   tip.style.display = 'block';
   let x = ev.clientX - box.left + 14, y = ev.clientY - box.top + 14;
   if (x + tip.offsetWidth > box.width - 8) x = ev.clientX - box.left - tip.offsetWidth - 14;
@@ -535,7 +761,7 @@ function tabLista(lista) {
   const cols = [['o', 'Obra'], ['m', 'Município'], ['uf', 'UF'], ['ct', 'Contrato'], ['f', 'Fase no SIGO'], ['e', 'Etapa'], ['c', 'Comprador'], ['r', 'Região']];
   const [k, dir] = st.sortLista;
   l = [...l].sort((a, b) => String(a[k]).localeCompare(String(b[k]), 'pt', { numeric: true }) * dir);
-  $('lista-n').textContent = `${fmt(l.length)} obra(s)` + (st.reg ? ` · região ${st.reg}` : '');
+  $('lista-n').textContent = `${fmt(l.length)} obra(s)` + (st.view !== 'BR' ? ` · ${st.view}` : '') + (st.reg ? ` · região ${st.reg}` : '') + (st.mun ? ` · ${(OBRAS.find((o) => chaveMun(o) === st.mun) || {}).m}` : '');
   const falta = (v, cond) => (cond ? `<span class="warn">${esc(v || '— falta —')}</span>` : esc(v));
   $('t-lista').innerHTML = `<thead><tr>${cols.map(([c, n]) => `<th class="l sort" data-k="${c}">${n}${k === c ? (dir > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('')}</tr></thead><tbody>` +
     (l.length ? l.map((o) => `<tr class="${o.dup ? 'dup' : ''}"><td class="l"><b>${esc(o.o)}</b></td><td class="l" data-l="Município">${falta(o.m, !o.m)}</td><td class="l" data-l="UF">${esc(o.uf)}</td><td class="l" data-l="Contrato">${esc(o.ct)}</td><td class="l" data-l="Fase no SIGO">${falta(o.f, !o.f || o.s === 'Fase não mapeada')}</td><td class="l" data-l="Etapa">${esc(o.e)}</td><td class="l" data-l="Comprador">${falta(o.c, o.c === 'Aguardando informação' || o.c === 'Sem comprador')}</td><td class="l" data-l="Região">${falta(o.r, o.r === 'Sem região')}</td></tr>`).join('')
@@ -556,7 +782,7 @@ function carregar(dados, origem) {
   const ufs = [...new Set(OBRAS.map((o) => o.uf).filter(Boolean))].sort();
   $('sel-uf').innerHTML = ['Todos', ...ufs].map((u) => `<option ${u === st.uf ? 'selected' : ''}>${u}</option>`).join('');
   if (!ufs.includes(st.uf)) st.uf = 'Todos';
-  st.reg = null; preset('andamento'); tudo(true);
+  st.reg = null; st.mun = null; st.view = 'BR'; st.vb = null; if (st.uf !== 'Todos') st.view = st.uf; preset('andamento'); tudo(true);
   const naoMap = OBRAS.filter((o) => o.s === 'Fase não mapeada').length;
   $('rodape').textContent = `Regras iguais às do Painel do Excel: fases, compradores, regiões e regras pelo código da obra vêm da aba Cadastros. "Em andamento" = status com Ativa? = Sim. Comprador principal = quem tem mais obras na região entre Elias, Maik e Marcelo; "Dividido" quando ninguém passa de 60%.` + (naoMap ? ` Atenção: ${naoMap} obra(s) com fase que não está em Cadastros.` : '');
   if (origem) { $('banner').style.display = 'flex'; $('banner-txt').textContent = origem; } else $('banner').style.display = 'none';
@@ -583,7 +809,9 @@ function lerPlanilha(buf, nome) {
 /* ---------- eventos ---------- */
 document.querySelectorAll('[data-c]').forEach((b) => b.addEventListener('click', () => setComp(b.dataset.c)));
 document.querySelectorAll('[data-p]').forEach((b) => b.addEventListener('click', () => { preset(b.dataset.p); tudo(true); }));
-$('sel-uf').addEventListener('change', (e) => { st.uf = e.target.value; st.reg = null; tudo(false); });
+$('sel-uf').addEventListener('change', (e) => (e.target.value === 'Todos' ? voltarBR() : abrirUF(e.target.value)));
+$('munchip').addEventListener('click', () => { st.mun = null; tudo(false); });
+document.querySelectorAll('[data-side]').forEach((b) => b.addEventListener('click', () => { st.side = b.dataset.side; lado(); }));
 $('regchip').addEventListener('click', () => { st.reg = null; tudo(false); });
 $('busca').addEventListener('input', (e) => { st.busca = e.target.value; tabLista(OBRAS.filter((o) => passa(o, false))); });
 $('sel-pend').addEventListener('change', (e) => { st.pend = e.target.value; tabLista(OBRAS.filter((o) => passa(o, false))); });
